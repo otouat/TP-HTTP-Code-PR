@@ -6,6 +6,8 @@ import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -64,6 +66,8 @@ public class WebServer {
         BufferedOutputStream dataOut = new BufferedOutputStream(remote.getOutputStream());
         File file;
         int lenght;
+
+        
         // read the data sent. We basically ignore it,
         // stop reading once a blank line is hit. This
         // blank line signals the end of the client HTTP
@@ -102,46 +106,135 @@ public class WebServer {
     	
     	String typeOfContent=getType(fileRequested);
         if(request.equals("GET")) {
-        	
-        	byte[] data=readData(file,lenght);
+        	boolean exists = file.exists();
+        	byte[] data=readData(file,lenght,out);
         	// Send the headers
-        	out.println("HTTP/1.0 200 OK");
-        	out.println("Server: Bot");
-        	out.println("Content-Type: "+typeOfContent);
-            out.println("Content-lenght: "+lenght);
-        	out.println("");
-        	out.flush();
+        	if(exists) {
+        		out.println("HTTP/1.0 200 OK");
+        		out.println("Server: Bot");
+        		out.println("Content-Type: "+typeOfContent);
+        		out.println("Content-lenght: "+lenght);
+        		out.println("");
+        		out.flush();
+        		// Send the requested file
+            	dataOut.write(data,0,lenght);
+            	dataOut.flush();
+        	}else if(!exists) {
+        		out.println("HTTP/1.0 404 Not Found");
+            	out.println("Server: Bot");
+            	out.println("");
+        	}
         	
-        	// Send the requested file
-        	dataOut.write(data,0,lenght);
-        	dataOut.flush();
-        }
-        // Send the response
+        	
+        	
         
-        
-        // this blank line signals the end of the headers
-        
+        }else if(request.equals("PUT")) {
+        	
+        	boolean exists = file.exists();
+
+        	PrintWriter pw = new PrintWriter(file);
+        	pw.close();
+            BufferedOutputStream fileOut = new BufferedOutputStream(new FileOutputStream(file));
+
+        	byte[] data=readData(file,lenght,out);
+        	fileOut.write(data,0,lenght);
+        	fileOut.flush();
+        	fileOut.close();
+        	if(exists) {
+            	out.println("HTTP/1.0 204 No Content");
+            	out.println("Server: Bot");
+            	out.println("");
+
+        	}else{
+        		out.println("HTTP/1.0 201 Created");
+            	out.println("Server: Bot");
+            	out.println("");
+        	}
+        	out.flush();
+
+        }else if(request.equals("POST")) {
+        	
+        	boolean exists = file.exists();
+            BufferedOutputStream fileOut = new BufferedOutputStream(new FileOutputStream(file,exists));
+
+        	byte[] data=readData(file,lenght,out);
+        	fileOut.write(data,0,lenght);
+        	fileOut.flush();
+        	fileOut.close();
+        	if(exists) {
+            	out.println("HTTP/1.0 200 OK");
+            	out.println("Server: Bot");
+            	out.println("");
+
+        	}else{
+        		out.println("HTTP/1.0 201 Created");
+            	out.println("Server: Bot");
+            	out.println("");
+        	}
+        	out.flush();
+
+        }else if(request.equals("DELETE")) {
+        	
+        	boolean exists = file.exists();
+        	boolean deleted = false;
+        	if(exists && file.isFile()) {
+            	deleted = file.delete();
+        	}
+        	
+        	if(deleted) {
+            	out.println("HTTP/1.0 204 No Content");
+            	out.println("Server: Bot");
+            	out.println("");
+
+        	}else if(!exists){
+        		out.println("HTTP/1.0 404 Not Found");
+            	out.println("Server: Bot");
+            	out.println("");
+        	
+        	}else {
+        		out.println("HTTP/1.0 403 Forbidden");
+            	out.println("Server: Bot");
+            	out.println("");
+        	
+        	}
+        }else if(request.equals("HEAD")) {
+            	
+            	boolean exists = file.exists();
+            	
+            	if(exists && file.isFile()) {
+                	out.println("HTTP/1.0 200 OK");
+                	out.println("Server: Bot");
+                	out.println("");
+
+            	}else{
+            		out.println("HTTP/1.0 404 Not Found");
+                	out.println("Server: Bot");
+                	out.println("");
+            	}
+        	}
         // Send the HTML page
-        
+        out.flush();
         remote.close();
       } catch (Exception e) {
         System.err.println("Error: " + e);
+        
       }
     }
   }
 
-  private byte[] readData(File file, int fileLenght) throws IOException {
+  private byte[] readData(File file, int fileLenght,PrintWriter out){
 	  FileInputStream in=null;
-	  byte[] data;
+	  byte[] data = null;
 	  try {
 		in=new FileInputStream(file);
 		data=new byte[fileLenght];
 		in.read(data);
-	  } finally {
-		if(in!=null) {
-			in.close();
-		}
-	}
+		in.close();
+	  }catch (IOException e){
+		out.println("HTTP/1.0 500 Internal Server Error");
+      	out.println("Server: Bot");
+      	out.println("");
+	  }
 	
 	return data;
 }
