@@ -2,6 +2,7 @@
 
 package http.server;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
@@ -64,20 +65,30 @@ public class WebServer {
 				PrintWriter out = new PrintWriter(remote.getOutputStream());
 				// get binary output from the output stream for the client
 				BufferedOutputStream dataOut = new BufferedOutputStream(remote.getOutputStream());
+				BufferedInputStream dataIn = new BufferedInputStream(remote.getInputStream());
 				File file;
 				int lenght;
 
-
+				String header = new String();
+				int currentChar = '\0', precedingChar = '\0';
+				boolean newline = false;
+				while((currentChar = dataIn.read()) != -1 && !(newline && precedingChar == '\r' && currentChar == '\n')) {
+					if(precedingChar == '\r' && currentChar == '\n') {
+						newline = true;
+					} else if(!(precedingChar == '\n' && currentChar == '\r')) {
+						newline = false;
+					}
+					precedingChar = currentChar;
+					header += (char) currentChar;
+				}
+				
+				System.out.println("REQUEST :");
+				System.out.println(header);
 				// read the data sent. We basically ignore it,
 				// stop reading once a blank line is hit. This
 				// blank line signals the end of the client HTTP
 				// headers.
-				String str = ".";
-				String header="";
-				while (!str.equals("")) {
-					str = in.readLine();
-					header+=str;
-				}
+				
 
 				StringTokenizer parser=new StringTokenizer(header);
 				//we parse the request
@@ -103,7 +114,7 @@ public class WebServer {
 				
 				if(request.equals("GET")) {
 					boolean exists = file.exists();
-					byte[] data=readData(file,lenght,out);
+					byte[] data=readDataFromServer(file,lenght,out);
 					// Send the headers
 					if(exists) {
 						out.println("HTTP/1.0 200 OK");
@@ -118,7 +129,7 @@ public class WebServer {
 					}else if(!exists) {
 						File filenf = new File(FILE_NF);
 						int fileLength = (int) filenf.length();
-						byte[] fileData = readData(filenf, fileLength,out);
+						byte[] fileData = readDataFromServer(filenf, fileLength,out);
 						out.println("HTTP/1.0 404 Not Found");
 						out.println("Server: Bot");
 						out.println("");
@@ -136,10 +147,16 @@ public class WebServer {
 					pw.close();
 					BufferedOutputStream fileOut = new BufferedOutputStream(new FileOutputStream(file));
 
-					byte[] data=readData(file,lenght,out);
-					fileOut.write(data,0,lenght);
+					byte[] buffer = new byte[500];
+					while(dataIn.available() > 0) {
+						int nbRead = dataIn.read(buffer);
+						fileOut.write(buffer, 0, nbRead);
+					}
 					fileOut.flush();
+					
+					//Fermeture du flux d'écriture vers le fichier
 					fileOut.close();
+					
 					if(exists) {
 						out.println("HTTP/1.0 204 No Content");
 						out.println("Server: Bot");
@@ -157,9 +174,14 @@ public class WebServer {
 					boolean exists = file.exists();
 					BufferedOutputStream fileOut = new BufferedOutputStream(new FileOutputStream(file,exists));
 
-					byte[] data=readData(file,lenght,out);
-					fileOut.write(data,0,lenght);
+					byte[] buffer = new byte[500];
+					while(dataIn.available() > 0) {
+						int nbRead = dataIn.read(buffer);
+						fileOut.write(buffer, 0, nbRead);
+					}
 					fileOut.flush();
+					
+					//Fermeture du flux d'écriture vers le fichier
 					fileOut.close();
 					if(exists) {
 						out.println("HTTP/1.0 200 OK");
@@ -189,7 +211,7 @@ public class WebServer {
 					}else if(!exists){
 						File filenf = new File(FILE_NF);
 						int fileLength = (int) filenf.length();
-						byte[] fileData = readData(filenf, fileLength,out);
+						byte[] fileData = readDataFromServer(filenf, fileLength,out);
 						out.println("HTTP/1.0 404 Not Found");
 						out.println("Server: Bot");
 						out.println("");
@@ -217,7 +239,7 @@ public class WebServer {
 					}else{
 						File filenf = new File(FILE_NF);
 						int fileLength = (int) filenf.length();
-						byte[] fileData = readData(filenf, fileLength,out);
+						byte[] fileData = readDataFromServer(filenf, fileLength,out);
 						out.println("HTTP/1.0 404 Not Found");
 						out.println("Server: Bot");
 						out.println("");
@@ -240,7 +262,7 @@ public class WebServer {
 		}
 	}
 
-	private byte[] readData(File file, int fileLenght,PrintWriter out){
+	private byte[] readDataFromServer(File file, int fileLenght,PrintWriter out){
 		FileInputStream in=null;
 		byte[] data = null;
 		try {
