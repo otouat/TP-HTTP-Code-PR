@@ -3,7 +3,7 @@
     <head>
 		<meta charset="utf-8" />
 		<link rel="stylesheet" href="style.css"/>
-        <title>Mémento HTML</title>
+        <title>Mini Serveur HTTP</title>
     </head>
 
     <body>
@@ -18,7 +18,7 @@
         
         <p>
                 <ul><li>
-        <a class='btn' href="http://localhost:3000/pageEssai.html" title="C'est vide pour l'instant..." >Page HTML</a>
+        <a class='btn' href="http://localhost:3000/pageEssai.html" >Page HTML</a>
     </li></ul>
         </p>
         
@@ -39,7 +39,13 @@
         <h2 id="Auteurs">Test Erreur 404 :</h2>
         <p> 
                 <ul><li><a class='btn' href="http://localhost:3000/fichierNonExistant.txt">Lien pour provoquer une erreur 404</a> </li></ul>		
-		</p>   
+        </p>   
+        
+        <form enctype="multipart/form-data" action="http://localhost:3000/upload" method="POST">
+            <input type="hidden" name="MAX_FILE_SIZE" value="1000000" />
+            Envoyez nous votre meilleure photo : <input name="photo" type="file" /><br />
+            <input type="submit" value="Upload Fichier" />
+        </form>
             
         <h2 id="Auteurs">Auteurs</h2>
         <p>

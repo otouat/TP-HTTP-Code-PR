@@ -2,6 +2,7 @@
 
 package http.server;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
@@ -64,8 +65,11 @@ public class WebServer {
 				PrintWriter out = new PrintWriter(remote.getOutputStream());
 				// get binary output from the output stream for the client
 				BufferedOutputStream dataOut = new BufferedOutputStream(remote.getOutputStream());
+				
+				BufferedInputStream dataIn = new BufferedInputStream(remote.getInputStream());
 				File file;
 				int lenght;
+				String fileRequested="";
 
 
 				// read the data sent. We basically ignore it,
@@ -76,17 +80,59 @@ public class WebServer {
 				String header="";
 				while (!str.equals("")) {
 					str = in.readLine();
-					header+=str;
+					header+=str+"\r\n";
 				}
-
+				System.out.println(header);
 				StringTokenizer parser=new StringTokenizer(header);
+				System.out.println(parser);
 				//we parse the request
 				String request=parser.nextToken().toUpperCase();
 				System.out.println(request);
+				
+				if(request.equals("POST")) {
+					int compteur=0;
+					String boundary = null;
+					String boundaryValue = null;
+					String line="";
+					String content;
+					while(!parser.nextToken().contains("boundary")) {
+						boundary=parser.nextToken().toLowerCase();
+						
+						if(boundary.contains("boundary")) {
+							System.out.println(boundary);
+							break;
+						}
+					}
+					boundaryValue=boundary.substring(9);
+					System.out.println(boundaryValue);
+					while (!str.equals(boundaryValue)) {
+						str = in.readLine();
+						if(str.equals(boundaryValue)&&compteur!=1) {
+							compteur++;
+						}
+						else if(str.equals(boundaryValue)&&compteur!=2) {
+							break;
+						}
+						line+=str;
+						StringTokenizer parserFilename=new StringTokenizer(line);
+						while(!parserFilename.nextToken().contains("filename")) {
+							content=parserFilename.nextToken().toLowerCase();
+							if(content.contains("filename")) {
+								System.out.println(content);
+								break;
+							}
+						}
+					}
+					
+					
+				}
+				else {
+					//we get the file
+					fileRequested=parser.nextToken().toLowerCase();
+					System.out.println(fileRequested);
+				}
 
-				//we get the file
-				String fileRequested=parser.nextToken().toLowerCase();
-				System.out.println(fileRequested);
+				
 
 				if(fileRequested.endsWith("/")) {
 					fileRequested=INDEX_FILE;
@@ -103,7 +149,7 @@ public class WebServer {
 				
 				if(request.equals("GET")) {
 					boolean exists = file.exists();
-					byte[] data=readData(file,lenght,out);
+					byte[] data1=readDataFromServer(file,lenght,out);
 					// Send the headers
 					if(exists) {
 						out.println("HTTP/1.0 200 OK");
@@ -113,12 +159,12 @@ public class WebServer {
 						out.println("");
 						out.flush();
 						// Send the requested file
-						dataOut.write(data,0,lenght);
+						dataOut.write(data1,0,lenght);
 						dataOut.flush();
 					}else if(!exists) {
 						File filenf = new File(FILE_NF);
 						int fileLength = (int) filenf.length();
-						byte[] fileData = readData(filenf, fileLength,out);
+						byte[] fileData = readDataFromServer(filenf, fileLength,out);
 						out.println("HTTP/1.0 404 Not Found");
 						out.println("Server: Bot");
 						out.println("");
@@ -136,8 +182,11 @@ public class WebServer {
 					pw.close();
 					BufferedOutputStream fileOut = new BufferedOutputStream(new FileOutputStream(file));
 
-					byte[] data=readData(file,lenght,out);
-					fileOut.write(data,0,lenght);
+					byte[] buffer = new byte[256];
+					while(dataIn.available() > 0) {
+						int nbRead = dataIn.read(buffer);
+						fileOut.write(buffer, 0, nbRead);
+					}
 					fileOut.flush();
 					fileOut.close();
 					if(exists) {
@@ -157,9 +206,15 @@ public class WebServer {
 					boolean exists = file.exists();
 					BufferedOutputStream fileOut = new BufferedOutputStream(new FileOutputStream(file,exists));
 
-					byte[] data=readData(file,lenght,out);
-					fileOut.write(data,0,lenght);
+					// Recopie des informations reçues dans le fichier
+					byte[] buffer = new byte[256];
+					while(dataIn.available() > 0) {
+						int nbRead = dataIn.read(buffer);
+						fileOut.write(buffer, 0, nbRead);
+					}
 					fileOut.flush();
+					
+					//Fermeture du flux d'écriture vers le fichier
 					fileOut.close();
 					if(exists) {
 						out.println("HTTP/1.0 200 OK");
@@ -189,7 +244,7 @@ public class WebServer {
 					}else if(!exists){
 						File filenf = new File(FILE_NF);
 						int fileLength = (int) filenf.length();
-						byte[] fileData = readData(filenf, fileLength,out);
+						byte[] fileData = readDataFromServer(filenf, fileLength,out);
 						out.println("HTTP/1.0 404 Not Found");
 						out.println("Server: Bot");
 						out.println("");
@@ -217,7 +272,7 @@ public class WebServer {
 					}else{
 						File filenf = new File(FILE_NF);
 						int fileLength = (int) filenf.length();
-						byte[] fileData = readData(filenf, fileLength,out);
+						byte[] fileData = readDataFromServer(filenf, fileLength,out);
 						out.println("HTTP/1.0 404 Not Found");
 						out.println("Server: Bot");
 						out.println("");
@@ -240,7 +295,7 @@ public class WebServer {
 		}
 	}
 
-	private byte[] readData(File file, int fileLenght,PrintWriter out){
+	private byte[] readDataFromServer(File file, int fileLenght,PrintWriter out){
 		FileInputStream in=null;
 		byte[] data = null;
 		try {
@@ -254,6 +309,8 @@ public class WebServer {
 
 		return data;
 	}
+	
+
 
 	private String getType(String fileRequested) {
 		if(fileRequested.endsWith(".html")) {
