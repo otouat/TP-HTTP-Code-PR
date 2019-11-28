@@ -14,6 +14,8 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.StringTokenizer;
 
 /**
@@ -28,8 +30,8 @@ import java.util.StringTokenizer;
  */
 public class WebServer {
 
-	static final String INDEX_FILE="index.html";
-	static final String FILE_NF="404.html";
+	static final String INDEX_FILE="./doc/index.html";
+	static final String FILE_NF="./doc/404.html";
 
 
 
@@ -60,7 +62,7 @@ public class WebServer {
 				System.out.println("Connection, sending data.");
 				// read from the client by the input stream on the socket
 				BufferedReader in = new BufferedReader(new InputStreamReader(
-						remote.getInputStream()));
+			            remote.getInputStream()));
 				// get from the output stream for the client
 				PrintWriter out = new PrintWriter(remote.getOutputStream());
 				// get binary output from the output stream for the client
@@ -93,11 +95,11 @@ public class WebServer {
 				StringTokenizer parser=new StringTokenizer(header);
 				//we parse the request
 				String request=parser.nextToken().toUpperCase();
-				System.out.println(request);
-
+				
+				
+				
 				//we get the file
 				String fileRequested=parser.nextToken().toLowerCase();
-				System.out.println(fileRequested);
 
 				if(fileRequested.endsWith("/")) {
 					fileRequested=INDEX_FILE;
@@ -111,6 +113,7 @@ public class WebServer {
 				}
 
 				String typeOfContent=getType(fileRequested);
+				
 				
 				if(request.equals("GET")) {
 					boolean exists = file.exists();
@@ -142,7 +145,6 @@ public class WebServer {
 				}else if(request.equals("PUT")) {
 
 					boolean exists = file.exists();
-
 					PrintWriter pw = new PrintWriter(file);
 					pw.close();
 					BufferedOutputStream fileOut = new BufferedOutputStream(new FileOutputStream(file));
@@ -156,6 +158,7 @@ public class WebServer {
 					
 					//Fermeture du flux d'écriture vers le fichier
 					fileOut.close();
+					
 					
 					if(exists) {
 						out.println("HTTP/1.0 204 No Content");
@@ -183,6 +186,9 @@ public class WebServer {
 					
 					//Fermeture du flux d'écriture vers le fichier
 					fileOut.close();
+					
+					
+					
 					if(exists) {
 						out.println("HTTP/1.0 200 OK");
 						out.println("Server: Bot");

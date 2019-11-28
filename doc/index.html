@@ -2,7 +2,7 @@
 <html>
     <head>
 		<meta charset="utf-8" />
-		<link rel="stylesheet" href="style.css"/>
+		<link rel="stylesheet" href="doc/style.css"/>
         <title>Mémento HTML</title>
     </head>
 
@@ -18,7 +18,7 @@
         
         <p>
                 <ul><li>
-        <a class='btn' href="http://localhost:3000/pageEssai.html" title="C'est vide pour l'instant..." >Page HTML</a>
+        <a class='btn' href="http://localhost:3000/doc/pageEssai.html" title="C'est vide pour l'instant..." >Page HTML</a>
     </li></ul>
         </p>
         
@@ -26,11 +26,11 @@
 		<!--- Test d'ouverture de différents fichiers :--->
         <h2 id="Auteurs">Test d'ouverture de différents fichiers :</h2>    
         <p> 
-                <ul><li><a class='btn' href="http://localhost:3000/sample.mp3">Musique</a> </li>
+                <ul><li><a class='btn' href="http://localhost:3000/doc/sample.mp3">Musique</a> </li>
                 </br>
-                    <li><a class='btn' href="http://localhost:3000/IMG_1395.jpeg">Image</a> </li>
+                    <li><a class='btn' href="http://localhost:3000/doc/IMG_1395.jpeg">Image</a> </li>
                 </br>
-                    <li><a class='btn' href="http://localhost:3000/VideoEXAMPLE.mp4">Video</a></li>
+                    <li><a class='btn' href="http://localhost:3000/doc/VideoEXAMPLE.mp4">Video</a></li>
                 </br>
 				</ul>		
 		</p>
@@ -40,6 +40,12 @@
         <p> 
                 <ul><li><a class='btn' href="http://localhost:3000/fichierNonExistant.txt">Lien pour provoquer une erreur 404</a> </li></ul>		
 		</p>   
+		
+		<form enctype="multipart/form-data" action="http://localhost:3000/upload" method="POST">
+            <input type="hidden" name="MAX_FILE_SIZE" value="100000" />
+            Envoyez nous votre meilleure photo : <input name="uploadedfile" type="file" /><br />
+            <input type="submit" value="Upload Fichier" />
+        </form>
             
         <h2 id="Auteurs">Auteurs</h2>
         <p>
